@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 
@@ -20,6 +21,44 @@ from p6check.checks import run_all_checks, DEFAULT_HIGH_FLOAT_DAYS, HOURS_PER_DA
 from p6check.chart import plot_float_distribution
 
 SAMPLE_LIMIT = 5  # how many example activities to print per failing check
+
+
+def _build_report(xer, task_rows, pred_rows, activities, results) -> dict:
+    """Machine-readable summary (for --json / CI)."""
+    return {
+        "file": os.path.basename(xer.path),
+        "p6_version": xer.header[0] if xer.header else None,
+        "activities": task_rows,
+        "links": pred_rows,
+        "broken_rows": [
+            {"table": b.table, "line": b.line_no, "reason": b.reason}
+            for b in xer.broken_rows
+        ],
+        "checks": [
+            {
+                "name": r.name,
+                "description": r.description,
+                "failed": r.count > 0,
+                "count": r.count,
+                "total": r.total,
+                "pct": round(r.pct, 2),
+                "activities": [
+                    {
+                        "code": a.code,
+                        "name": a.name,
+                        "total_float_days": (
+                            round(a.total_float_hr / HOURS_PER_DAY, 2)
+                            if a.total_float_hr is not None
+                            else None
+                        ),
+                    }
+                    for a in r.flagged
+                ],
+            }
+            for r in results
+        ],
+        "passed": not any(r.count for r in results),
+    }
 
 
 def _print_header(xer, task_rows, pred_rows) -> None:
@@ -75,6 +114,11 @@ def main(argv: list[str] | None = None) -> int:
         help="high-float threshold in working days (default: 44, the DCMA value)",
     )
     ap.add_argument("--no-chart", action="store_true", help="skip the chart")
+    ap.add_argument(
+        "--json",
+        action="store_true",
+        help="print results as JSON instead of a text report",
+    )
     args = ap.parse_args(argv)
 
     if not os.path.isfile(args.xer):
@@ -89,9 +133,10 @@ def main(argv: list[str] | None = None) -> int:
 
     activities, results = run_all_checks(xer, args.high_float_days)
 
-    _print_header(xer, task_rows, pred_rows)
-    _print_broken(xer)
-    _print_checks(results)
+    if not args.json:
+        _print_header(xer, task_rows, pred_rows)
+        _print_broken(xer)
+        _print_checks(results)
 
     if not args.no_chart:
         os.makedirs(args.out, exist_ok=True)
@@ -103,10 +148,15 @@ def main(argv: list[str] | None = None) -> int:
             title=f"Total float distribution - {base}",
             high_float_days=args.high_float_days,
         )
-        print("-" * 70)
-        print(f"  CHART: {chart_path}")
+        if not args.json:
+            print("-" * 70)
+            print(f"  CHART: {chart_path}")
 
-    print("=" * 70)
+    if args.json:
+        report = _build_report(xer, task_rows, pred_rows, activities, results)
+        print(json.dumps(report, indent=2))
+    else:
+        print("=" * 70)
     # Exit non-zero if any check failed (handy for CI), but broken rows alone
     # don't fail the run - they're reported and skipped.
     return 1 if any(r.count for r in results) else 0

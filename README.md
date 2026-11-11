@@ -63,6 +63,7 @@ Options:
 - `--high-float-days N` — high-float threshold in working days (default 44)
 - `--out DIR` — where the chart PNG is written (default `out/`)
 - `--no-chart` — skip the chart
+- `--json` — print results as JSON instead of the text report (scriptable / CI-friendly)
 
 Exit code is non-zero if any check fails (handy for CI).
 
