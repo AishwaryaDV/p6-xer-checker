@@ -114,21 +114,31 @@ checks at a glance.
 
 ![hotel float distribution](out/hotel-project_float_distribution.png)
 
+**dukhan-housing-12th-update.xer** (5,609 activities, a real project running late)
+
+![dukhan float distribution](out/dukhan-housing-12th-update_float_distribution.png)
+
 ---
 
-## Findings on the two sample schedules
+## Findings on the three sample schedules
 
 | File | Activities | Links | Broken | Missing links | Negative float | High float |
 |------|-----------:|------:|-------:|--------------:|---------------:|-----------:|
 | terminal-airport.xer | 66 | 84 | 0 | 0 | 0 | 10 (15%) |
 | hotel-project.xer | 4,236 | 7,586 | 0 | 26 | 0 | 2,263 (53%) |
+| dukhan-housing-12th-update.xer | 5,609 | 17,883 | 3 | 1 | **3,589 (64%)** | 114 (2%) |
 
-Neither public schedule carries **negative float** (normal — it only appears
-when a schedule is recalculated against a hard deadline it's missing). To prove
-that code path and the broken-row detector still work, a deliberately
-malformed, behind-schedule fixture lives at
-[`tests/fixtures/broken_sample.xer`](tests/fixtures/broken_sample.xer) and is
-exercised by the tests.
+The first two are **clean baselines**, so they carry no negative float — that's
+normal, because negative float only appears once a schedule is progressed and
+starts missing a deadline it's constrained to. The third file is a real
+construction project's **12th monthly update**, and it shows exactly that: 64%
+of its activities are behind, and it even has 3 genuinely broken rows (a
+malformed `RISKTYPE` table) that the checker flags and skips. So all four
+behaviours are demonstrated on **real published data**, not mock-ups.
+
+A tiny hand-made fixture ([`tests/fixtures/broken_sample.xer`](tests/fixtures/broken_sample.xer))
+also trips every check — it's used by the tests so they stay fast and
+deterministic, independent of the large sample files.
 
 ---
 
@@ -140,9 +150,9 @@ python tests/test_checks.py      # or: pytest
 
 ---
 
-## The two sample `.xer` files
+## The sample `.xer` files
 
-Both are publicly available Primavera P6 exports, included here for
+All are publicly available Primavera P6 exports, included here for
 demonstration:
 
 - `samples/terminal-airport.xer` — a real airport terminal building schedule
@@ -150,6 +160,10 @@ demonstration:
   [CodeVision3000/P6-Viewer](https://github.com/CodeVision3000/P6-Viewer) repo.
 - `samples/hotel-project.xer` — a real hotel construction schedule (P6 v6.0),
   same public source.
+- `samples/dukhan-housing-12th-update.xer` — the 12th monthly update of a real
+  housing construction project (P6 v17.12), via the public
+  [Projecting-Success hackathon dataset](https://github.com/Projecting-Success-Solutions-Portal/hack26-autoplan-wbs-generator).
+  Included because a progressed schedule is where negative float actually shows up.
 
 ---
 
@@ -161,7 +175,7 @@ p6check/
   parser.py             .xer -> tables, flags broken rows
   checks.py             the three checks + DCMA thresholds
   chart.py              the float-distribution chart
-samples/                the two public .xer files
+samples/                the public .xer files (2 clean baselines + 1 progressed)
 tests/
   test_checks.py        smoke tests
   fixtures/broken_sample.xer   crafted file that trips every check
