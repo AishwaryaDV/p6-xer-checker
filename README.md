@@ -8,6 +8,12 @@ The three checks are a subset of the industry-standard
 [DCMA 14-Point Schedule Assessment](https://en.wikipedia.org/wiki/Defense_Contract_Management_Agency)
 that planners use to sanity-check a P6 schedule.
 
+It ships with **three real public schedules** so you can see it work on both
+healthy and troubled data: two clean baselines (an airport terminal and a
+hotel) and one real construction project running badly late (a housing
+project's 12th monthly update, 64% of its activities behind schedule). See
+[Findings](#findings-on-the-three-sample-schedules).
+
 ---
 
 ## What is an `.xer` file?
